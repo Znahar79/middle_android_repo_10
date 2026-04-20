@@ -40,6 +40,7 @@ import ru.yandex.buggyweatherapp.model.WeatherData
 import ru.yandex.buggyweatherapp.utils.WeatherIconMapper
 import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 
+// TODO: Refactor to use states instead passing entire viewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {

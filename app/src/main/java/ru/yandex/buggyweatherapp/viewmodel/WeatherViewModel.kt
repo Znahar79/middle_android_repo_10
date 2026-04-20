@@ -3,14 +3,10 @@ package ru.yandex.buggyweatherapp.viewmodel
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
-import ru.yandex.buggyweatherapp.WeatherApplication
 import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.model.WeatherData
 import ru.yandex.buggyweatherapp.repository.LocationRepository
@@ -20,11 +16,8 @@ import java.util.Timer
 import java.util.TimerTask
 
 class WeatherViewModel : ViewModel() {
-    
-    
     private lateinit var activityContext: Context
-    
-    
+
     private val weatherRepository = WeatherRepository()
     private val locationRepository by lazy { 
         LocationRepository(activityContext)
@@ -36,11 +29,6 @@ class WeatherViewModel : ViewModel() {
     val isLoading = MutableLiveData<Boolean>()
     val error = MutableLiveData<String>()
     val cityName = MutableLiveData<String>()
-    
-    
-    private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    
-    
     private var refreshTimer: Timer? = null
     
     
@@ -122,7 +110,7 @@ class WeatherViewModel : ViewModel() {
     
     
     fun loadWeatherIcon(iconCode: String) {
-        coroutineScope.launch {
+        viewModelScope.launch {
             val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
             ImageLoader.loadImage(iconUrl)
         }

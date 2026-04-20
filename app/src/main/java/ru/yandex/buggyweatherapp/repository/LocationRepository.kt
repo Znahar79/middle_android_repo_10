@@ -15,25 +15,25 @@ import ru.yandex.buggyweatherapp.utils.LocationTracker
 import java.util.Locale
 
 class LocationRepository(
-    
+
     private val context: Context
 ) {
-    
-    private val fusedLocationClient: FusedLocationProviderClient = 
+
+    private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
-    
-    
+
+
     private var currentLocation: Location? = null
-    
-    
+
+
     private var locationCallback: ((Location?) -> Unit)? = null
-    
-    
+
+
     fun getCurrentLocation(callback: (Location?) -> Unit) {
         try {
             locationCallback = callback
-            
-            
+
+
             fusedLocationClient.lastLocation
                 .addOnSuccessListener { location ->
                     if (location != null) {
@@ -44,7 +44,7 @@ class LocationRepository(
                         currentLocation = userLocation
                         callback(userLocation)
                     } else {
-                        
+
                         requestLocationUpdates(callback)
                     }
                 }
@@ -57,15 +57,15 @@ class LocationRepository(
             callback(null)
         }
     }
-    
-    
+
+
     private fun requestLocationUpdates(callback: (Location?) -> Unit) {
         try {
             val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
                 .setWaitForAccurateLocation(false)
                 .setMinUpdateIntervalMillis(5000)
                 .build()
-            
+
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: LocationResult) {
                     locationResult.lastLocation?.let { location ->
@@ -75,13 +75,13 @@ class LocationRepository(
                         )
                         currentLocation = userLocation
                         callback(userLocation)
-                        
-                        
+
+
                     }
                 }
             }
-            
-            
+
+
             fusedLocationClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback,
@@ -92,16 +92,16 @@ class LocationRepository(
             callback(null)
         }
     }
-    
-    
+
+
     fun getCityNameFromLocation(location: Location): String? {
         try {
-            
+
             val geocoder = Geocoder(context, Locale.getDefault())
-            
+
             @Suppress("DEPRECATION")
             val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-            
+
             return if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
                 if (address.locality != null) {
@@ -119,11 +119,11 @@ class LocationRepository(
             return null
         }
     }
-    
-    
+
+
     fun startLocationTracking() {
         LocationTracker.getInstance(context).startTracking()
     }
-    
-    
+
+
 }

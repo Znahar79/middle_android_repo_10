@@ -21,21 +21,22 @@ import ru.yandex.buggyweatherapp.ui.theme.BuggyWeatherAppTheme
 import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 
 class MainActivity : ComponentActivity() {
-    
-    private val weatherViewModel = WeatherViewModel()
+    private val weatherViewModel: WeatherViewModel by viewModels()
     
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         when {
             permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true -> {
-                
+                // TODO: Call the appropriate method in the ViewModel when permission is granted
             }
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true -> {
-                
+                // TODO: Call the appropriate method in the ViewModel when permission is granted
             }
             else -> {
-                
+                if (!shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    // TODO: Show a dialog with a button that opens app settings
+                }
             }
         }
     }
@@ -79,7 +80,6 @@ class MainActivity : ComponentActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        
     }
 }
 
@@ -87,7 +87,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WeatherAppPreview() {
     BuggyWeatherAppTheme {
-        
         Text("Weather App Preview")
     }
 }
