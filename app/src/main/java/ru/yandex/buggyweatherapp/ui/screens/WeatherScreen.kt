@@ -1,7 +1,6 @@
 package ru.yandex.buggyweatherapp.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,20 +43,12 @@ import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
-    
-    val context = LocalContext.current
-    
-    
+
     DisposableEffect(Unit) {
-        
-        viewModel.initialize(context)
-        
-        onDispose {
-            
-        }
+        viewModel.initialize()
+        onDispose {}
     }
-    
-    
+
     val weatherData by viewModel.weatherData.observeAsState()
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState()
@@ -120,7 +111,7 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun WeatherCard(
     weather: WeatherData,
-    cityName: String,
+    cityName: String?,
     onFavoriteClick: () -> Unit,
     onRefreshClick: () -> Unit
 ) {
@@ -140,7 +131,7 @@ fun WeatherCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = cityName.ifEmpty { weather.cityName },
+                    text = cityName?.ifEmpty { weather.cityName } ?: "",
                     style = MaterialTheme.typography.headlineMedium
                 )
                 
