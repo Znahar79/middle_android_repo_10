@@ -8,6 +8,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.model.WeatherData
@@ -15,7 +18,6 @@ import ru.yandex.buggyweatherapp.repository.LocationRepository
 import ru.yandex.buggyweatherapp.repository.WeatherRepository
 import ru.yandex.buggyweatherapp.utils.ImageLoader
 import java.util.Timer
-import java.util.TimerTask
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     private val weatherRepository = WeatherRepository()
@@ -31,8 +33,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val error: LiveData<String?> = _error
     private val _cityName = MutableLiveData<String?>()
     val cityName: LiveData<String?> = _cityName
-    private var refreshTimer: Timer? = null
-    
+    private var refreshJob: Job? = null
     
     init {
         fetchCurrentLocationWeather()
@@ -67,12 +68,10 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun getWeatherForLocation(location: Location) {
         _isLoading.value = true
         _error.value = null
-        
+
         weatherRepository.getWeatherData(location) { data, exception ->
-            
-            Handler(Looper.getMainLooper()).post {
+            viewModelScope.launch(Dispatchers.Main) {
                 _isLoading.value = false
-                
                 if (data != null) {
                     _weatherData.value = data
                 } else {
@@ -116,20 +115,18 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             ImageLoader.loadImage(iconUrl)
         }
     }
-    
-    
-    private fun startAutoRefresh() {
-        refreshTimer = Timer()
-        refreshTimer?.schedule(object : TimerTask() {
-            override fun run() {
-                _currentLocation.value?.let { location ->
+
+    fun startAutoRefresh() {
+        refreshJob = viewModelScope.launch {
+            while (isActive) {
+                delay(60_000) // Wait 60 seconds
+                currentLocation.value?.let { location ->
                     getWeatherForLocation(location)
                 }
             }
-        }, 60000, 60000)
+        }
     }
-    
-    
+
     fun toggleFavorite() {
         _weatherData.value?.let {
             it.isFavorite = !it.isFavorite
@@ -139,8 +136,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     
     
     override fun onCleared() {
-        refreshTimer?.cancel()
-        refreshTimer = null
+        refreshJob?.cancel()
         super.onCleared()
     }
 }
