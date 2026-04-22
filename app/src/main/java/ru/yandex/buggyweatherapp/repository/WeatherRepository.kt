@@ -18,10 +18,7 @@ class WeatherRepository {
     private var cachedWeatherData: WeatherData? = null
 
     fun getWeatherData(location: Location, callback: (WeatherData?, Exception?) -> Unit) {
-
         val call = weatherApi.getCurrentWeather(location.latitude, location.longitude)
-
-
         try {
 
             val response = call.execute()

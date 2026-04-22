@@ -34,7 +34,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private var refreshTimer: Timer? = null
     
     
-    fun initialize() {
+    init {
         fetchCurrentLocationWeather()
         startAutoRefresh()
     }
@@ -120,7 +120,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     
     private fun startAutoRefresh() {
         refreshTimer = Timer()
-        refreshTimer?.scheduleAtFixedRate(object : TimerTask() {
+        refreshTimer?.schedule(object : TimerTask() {
             override fun run() {
                 _currentLocation.value?.let { location ->
                     getWeatherForLocation(location)

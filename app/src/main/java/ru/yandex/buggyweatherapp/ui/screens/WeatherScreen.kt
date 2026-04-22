@@ -45,7 +45,6 @@ import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
 
     DisposableEffect(Unit) {
-        viewModel.initialize()
         onDispose {}
     }
 
