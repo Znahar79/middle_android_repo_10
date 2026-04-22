@@ -129,8 +129,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     fun toggleFavorite() {
         _weatherData.value?.let {
-            it.isFavorite = !it.isFavorite
-            _weatherData.value = it
+            val updated = it.copy(isFavorite = !it.isFavorite)
+            _weatherData.value = updated
         }
     }
     
