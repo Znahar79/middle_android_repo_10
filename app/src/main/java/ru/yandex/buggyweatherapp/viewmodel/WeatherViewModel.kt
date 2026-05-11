@@ -1,91 +1,78 @@
 package ru.yandex.buggyweatherapp.viewmodel
 
-import android.content.Context
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import ru.yandex.buggyweatherapp.WeatherApplication
 import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.model.WeatherData
 import ru.yandex.buggyweatherapp.repository.LocationRepository
 import ru.yandex.buggyweatherapp.repository.WeatherRepository
 import ru.yandex.buggyweatherapp.utils.ImageLoader
-import java.util.Timer
-import java.util.TimerTask
 
-class WeatherViewModel : ViewModel() {
-    
-    
-    private lateinit var activityContext: Context
-    
-    
+class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     private val weatherRepository = WeatherRepository()
-    private val locationRepository by lazy { 
-        LocationRepository(activityContext)
-    }
+    private val locationRepository = LocationRepository(application)
+
+    private val _weatherData = MutableLiveData<WeatherData?>()
+    val weatherData: LiveData<WeatherData?> = _weatherData
+    private val _currentLocation = MutableLiveData<Location?>()
+    val currentLocation: LiveData<Location?> = _currentLocation
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
+    private val _error = MutableLiveData<String?>()
+    val error: LiveData<String?> = _error
+    private val _cityName = MutableLiveData<String?>()
+    val cityName: LiveData<String?> = _cityName
+    private var refreshJob: Job? = null
     
-    
-    val weatherData = MutableLiveData<WeatherData>()
-    val currentLocation = MutableLiveData<Location>()
-    val isLoading = MutableLiveData<Boolean>()
-    val error = MutableLiveData<String>()
-    val cityName = MutableLiveData<String>()
-    
-    
-    private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    
-    
-    private var refreshTimer: Timer? = null
-    
-    
-    fun initialize(context: Context) {
-        this.activityContext = context
+    init {
         fetchCurrentLocationWeather()
-        
-        
         startAutoRefresh()
     }
-    
-    
+
+
     fun fetchCurrentLocationWeather() {
-        isLoading.value = true
-        error.value = null
-        
+        _isLoading.value = true
+        _error.value = ""   // Clear error with an empty string
+
         locationRepository.getCurrentLocation { location ->
             if (location != null) {
-                currentLocation.value = location
-                
-                
-                val cityNameFromLocation = locationRepository.getCityNameFromLocation(location)
-                cityName.value = cityNameFromLocation
-                
-                getWeatherForLocation(location)
+                viewModelScope.launch(Dispatchers.Main) {
+                    _currentLocation.value = location
+
+                    val cityNameFromLocation = locationRepository.getCityNameFromLocation(location)
+                    _cityName.value = cityNameFromLocation ?: ""  // Fallback to empty string if null
+
+                    // getWeatherForLocation will eventually set _isLoading to false
+                    getWeatherForLocation(location)
+                }
             } else {
-                isLoading.value = false
-                error.value = "Unable to get current location"
+                viewModelScope.launch(Dispatchers.Main) {
+                    _isLoading.value = false
+                    _error.value = "Unable to get current location"
+                }
             }
         }
     }
     
     fun getWeatherForLocation(location: Location) {
-        isLoading.value = true
-        error.value = null
-        
+        _isLoading.value = true
+        _error.value = null
+
         weatherRepository.getWeatherData(location) { data, exception ->
-            
-            Handler(Looper.getMainLooper()).post {
-                isLoading.value = false
-                
+            viewModelScope.launch(Dispatchers.Main) {
+                _isLoading.value = false
                 if (data != null) {
-                    weatherData.value = data
+                    _weatherData.value = data
                 } else {
-                    error.value = exception?.message ?: "Unknown error"
+                    _error.value = exception?.message ?: "Unknown error"
                 }
             }
         }
@@ -93,24 +80,22 @@ class WeatherViewModel : ViewModel() {
     
     fun searchWeatherByCity(city: String) {
         if (city.isBlank()) {
-            error.value = "City name cannot be empty"
+            _error.value = "City name cannot be empty"
             return
         }
-        
-        isLoading.value = true
-        error.value = null
-        
+        _isLoading.value = true
+        _error.value = null
         
         weatherRepository.getWeatherByCity(city) { data, exception ->
             
-            isLoading.value = false
+            _isLoading.value = false
             
             if (data != null) {
-                weatherData.value = data
-                cityName.value = data.cityName
-                currentLocation.value = Location(0.0, 0.0, data.cityName)
+                _weatherData.value = data
+                _cityName.value = data.cityName
+                _currentLocation.value = Location(0.0, 0.0, data.cityName)
             } else {
-                error.value = exception?.message ?: "Unknown error"
+                _error.value = exception?.message ?: "Unknown error"
             }
         }
     }
@@ -122,36 +107,33 @@ class WeatherViewModel : ViewModel() {
     
     
     fun loadWeatherIcon(iconCode: String) {
-        coroutineScope.launch {
+        viewModelScope.launch {
             val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
             ImageLoader.loadImage(iconUrl)
         }
     }
-    
-    
-    private fun startAutoRefresh() {
-        refreshTimer = Timer()
-        refreshTimer?.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
+
+    fun startAutoRefresh() {
+        refreshJob = viewModelScope.launch {
+            while (isActive) {
+                delay(60_000) // Wait 60 seconds
                 currentLocation.value?.let { location ->
                     getWeatherForLocation(location)
                 }
             }
-        }, 60000, 60000)
+        }
     }
-    
-    
+
     fun toggleFavorite() {
-        weatherData.value?.let {
-            it.isFavorite = !it.isFavorite
-            
-            weatherData.value = it
+        _weatherData.value?.let {
+            val updated = it.copy(isFavorite = !it.isFavorite)
+            _weatherData.value = updated
         }
     }
     
     
     override fun onCleared() {
+        refreshJob?.cancel()
         super.onCleared()
-        
     }
 }

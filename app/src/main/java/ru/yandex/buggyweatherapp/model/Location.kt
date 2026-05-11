@@ -5,7 +5,7 @@ data class Location(
     val longitude: Double,
     val name: String? = null
 ) {
-    
+
     override fun toString(): String {
         var result = ""
         result += "Latitude: $latitude, "
@@ -14,11 +14,5 @@ data class Location(
             result += ", Name: $it"
         }
         return result
-    }
-    
-    
-    override fun equals(other: Any?): Boolean {
-        if (other !is Location) return false
-        return latitude == other.latitude && longitude == other.longitude
     }
 }

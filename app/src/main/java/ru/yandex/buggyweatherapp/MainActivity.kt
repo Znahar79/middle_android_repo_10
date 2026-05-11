@@ -1,8 +1,11 @@
 package ru.yandex.buggyweatherapp
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,9 +13,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
@@ -21,28 +27,28 @@ import ru.yandex.buggyweatherapp.ui.theme.BuggyWeatherAppTheme
 import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 
 class MainActivity : ComponentActivity() {
-    
-    private val weatherViewModel = WeatherViewModel()
+    private val weatherViewModel: WeatherViewModel by viewModels()
+    private var showSettingsDialog = mutableStateOf(false)
     
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         when {
-            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true -> {
-                
-            }
-            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true -> {
-                
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                    || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true-> {
+                weatherViewModel.fetchCurrentLocationWeather()
             }
             else -> {
-                
+                if (!shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    showSettingsDialog.value = true
+                }
             }
         }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val hasFineLocation = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -63,7 +69,7 @@ class MainActivity : ComponentActivity() {
         }
         
         enableEdgeToEdge()
-        
+
         setContent {
             BuggyWeatherAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -71,6 +77,33 @@ class MainActivity : ComponentActivity() {
                         viewModel = weatherViewModel,
                         modifier = Modifier.padding(innerPadding)
                     )
+
+                    if (showSettingsDialog.value) {
+                        AlertDialog(
+                            onDismissRequest = { showSettingsDialog.value = false },
+                            title = { Text("Location Permission Required") },
+                            text = { Text("This app needs location access to show weather data. Please enable it in Settings.") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showSettingsDialog.value = false
+                                        val intent =
+                                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = Uri.fromParts("package", packageName, null)
+                                            }
+                                        startActivity(intent)
+                                    }
+                                ) {
+                                    Text("Open Settings")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showSettingsDialog.value = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -79,7 +112,6 @@ class MainActivity : ComponentActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        
     }
 }
 
@@ -87,7 +119,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WeatherAppPreview() {
     BuggyWeatherAppTheme {
-        
         Text("Weather App Preview")
     }
 }
