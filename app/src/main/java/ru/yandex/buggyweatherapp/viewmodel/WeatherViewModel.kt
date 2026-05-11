@@ -1,8 +1,6 @@
 package ru.yandex.buggyweatherapp.viewmodel
 
 import android.app.Application
-import android.os.Handler
-import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,7 +15,6 @@ import ru.yandex.buggyweatherapp.model.WeatherData
 import ru.yandex.buggyweatherapp.repository.LocationRepository
 import ru.yandex.buggyweatherapp.repository.WeatherRepository
 import ru.yandex.buggyweatherapp.utils.ImageLoader
-import java.util.Timer
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     private val weatherRepository = WeatherRepository()
